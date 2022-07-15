@@ -4,6 +4,8 @@
 #include "framework.h"
 #include "WinServer.h"
 #include "ServerNonBock.h"
+#include <string>
+#include <memory>
 
 #define MAX_LOADSTRING 100
 
@@ -17,8 +19,10 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+BOOL    CALLBACK    ServerDialogProc( HWND, UINT, WPARAM, LPARAM );
 
-ServerNonBlock server;
+HWND g_DlgHwnd = NULL;
+std::unique_ptr<ServerNonBlock> pServer;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -134,28 +138,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
         {
-            server.InitSocket( hWnd );
-        }
-        break;
-    case ServerNonBlock::WM_ASYNC:
-        {
-            switch ( lParam )
+            if ( !IsWindow( g_DlgHwnd ) )
             {
-            case FD_ACCEPT:
-                server.AcceptSocket(hWnd);
-                break;
-            // 메시지 읽을 떄
-            case FD_READ:
-                server.ReadMessageFromClient();
-                InvalidateRect(hWnd, NULL, TRUE);
-                break;
-            // client 끊김
-            case FD_CLOSE:
-                server.CloseClient( wParam );
-                break;
+                g_DlgHwnd = CreateDialog( hInst, MAKEINTRESOURCE( IDD_DIALOG_SERVER ), hWnd, ServerDialogProc );
+                
+                ShowWindow( g_DlgHwnd, SW_SHOW );
             }
         }
         break;
+
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -178,7 +169,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-            server.PrintText( hdc );
+            //server.PrintText( hdc );
             EndPaint(hWnd, &ps);
         }
         break;
@@ -210,4 +201,76 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+BOOL CALLBACK ServerDialogProc( HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam )
+{
+    static HWND hList;
+
+    UNREFERENCED_PARAMETER( lParam );
+    switch ( iMsg )
+    {
+    case WM_INITDIALOG:
+        {
+            hList = GetDlgItem( hDlg, IDC_LIST_Log );
+        }
+        return TRUE;
+
+    case ServerNonBlock::WM_ASYNC:
+        {
+            switch ( lParam )
+            {
+            case FD_ACCEPT:
+                pServer->AcceptSocket(  );
+                break;
+                // 메시지 읽을 떄
+            case FD_READ:
+                pServer->ReadMessageFromClient();
+                SendMessage( hList, LB_ADDSTRING, 0, (LPARAM)pServer->GetMsg() );
+                //InvalidateRect( hDlg, NULL, TRUE );
+                break;
+                // client 끊김
+            case FD_CLOSE:
+                pServer->CloseClient( wParam );
+                break;
+            }
+        }
+        break;
+
+    case WM_COMMAND:
+        switch ( LOWORD( wParam ) )
+        {
+        case IDC_BUTTON_START_SERVER:
+            {
+                pServer = std::make_unique<ServerNonBlock>(hDlg);
+            }
+            break;
+        case IDC_BUTTON_STOP_SERVER:
+            {
+                pServer.release();
+            }
+            break;
+        case IDC_BUTTON_SEND:
+            {
+                wchar_t word[128];
+                GetDlgItemText( hDlg, IDC_EDIT_SEND, word, 128 );
+                pServer->SendServerMessageToClient( word );
+            }
+            break;
+        case IDCLOSE:
+        case IDOK:
+        case IDCANCEL:
+            {
+                //EndDialog( hDlg, LOWORD( wParam ) );
+                // for modeless
+                DestroyWindow( g_DlgHwnd );
+                g_DlgHwnd = NULL;
+                return TRUE;
+            }
+            break;
+        }
+        break;
+    }
+
+    return FALSE;
 }
