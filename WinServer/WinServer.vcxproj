@@ -141,7 +141,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="ServerNonblock.h" />
+    <ClInclude Include="ServerNonBock.h" />
     <ClInclude Include="SocketServer.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WinServer.h" />

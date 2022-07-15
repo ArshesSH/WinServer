@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "WinClient.h"
 #include "SocketClient.h"
+#include "ClientNonBlock.h"
 #include <string>
 
 #define MAX_LOADSTRING 100
@@ -20,7 +21,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 
-SocketClient client;
+ClientNonBlock client;
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -134,7 +135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
         {
-
+            client.InitSocket(hWnd);
         }
         break;
     case WM_COMMAND:
@@ -154,16 +155,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
-    case WM_KEYDOWN:
+    case ClientNonBlock::WM_ASYNC:
         {
-            const std::string str = "헬로";
-            client.SendMsg( str.c_str(), str.size() );
+            switch ( lParam )
+            {
+            case FD_READ:
+                {
+                    client.GetServerMessage();
+                    InvalidateRect( hWnd, NULL, TRUE );
+                }
+                break;
+            }
         }
+        break;
+    case WM_CHAR:
+        {
+            if ( wParam == VK_RETURN )
+            {
+                return client.SendMessageToServer();
+            }
+            client.SetStr( wParam );
+            InvalidateRect( hWnd, NULL, TRUE );
+        }
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+            client.PrintText( hdc );
+            client.PrintServerMessage( hdc );
+
+
             EndPaint(hWnd, &ps);
         }
         break;

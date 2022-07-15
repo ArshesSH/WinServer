@@ -3,7 +3,7 @@
 
 #include "framework.h"
 #include "WinServer.h"
-#include "SocketServer.h"
+#include "ServerNonBock.h"
 
 #define MAX_LOADSTRING 100
 
@@ -18,7 +18,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-SocketServer server;
+ServerNonBlock server;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -134,7 +134,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
         {
-            server.DoServer();
+            server.InitSocket( hWnd );
+        }
+        break;
+    case ServerNonBlock::WM_ASYNC:
+        {
+            switch ( lParam )
+            {
+            case FD_ACCEPT:
+                server.AcceptSocket(hWnd);
+                break;
+            // 메시지 읽을 떄
+            case FD_READ:
+                server.ReadMessageFromClient();
+                InvalidateRect(hWnd, NULL, TRUE);
+                break;
+            // client 끊김
+            case FD_CLOSE:
+                server.CloseClient( wParam );
+                break;
+            }
         }
         break;
     case WM_COMMAND:
