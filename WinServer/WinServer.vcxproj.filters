@@ -30,7 +30,7 @@
     <ClInclude Include="SocketServer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ServerNonBock.h">
+    <ClInclude Include="ServerNonBlock.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

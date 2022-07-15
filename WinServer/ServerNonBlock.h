@@ -75,7 +75,11 @@ public:
 	{
 		for ( auto& cs : socketList )
 		{
-			send( cs, (LPSTR)buffer, strlen(buffer)+1, 0 );
+			if ( send( cs, (LPSTR)buffer, strlen( buffer ) + 1, 0 ) == SOCKET_ERROR )
+			{
+				MessageBox( NULL, _T( "Server Send failed" ), _T( "Error" ), MB_OK );
+
+			}
 		}
 	}
 	void ReadMessageFromClient(  )

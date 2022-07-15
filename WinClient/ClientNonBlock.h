@@ -10,7 +10,9 @@
 class ClientNonBlock
 {
 public:
-	ClientNonBlock()
+	ClientNonBlock(HWND hwnd)
+		:
+		hWnd(hWnd)
 	{
 		WSAStartup( MAKEWORD( 2, 2 ), &wsadata );
 		s = socket( AF_INET, SOCK_STREAM, 0 );
@@ -27,6 +29,7 @@ public:
 		{
 			MessageBox( NULL, _T( "Connect success" ), _T( "Success" ), MB_OK );
 		}
+		InitSocket( hwnd );
 	}
 	~ClientNonBlock()
 	{
@@ -60,6 +63,24 @@ public:
 		
 		return true;
 	}
+
+	bool SendMessageToServer(const wchar_t* sendMsg)
+	{
+
+		if ( s == INVALID_SOCKET )
+		{
+			return false;
+		}
+
+		msgLen = WideCharToMultiByte( CP_ACP, 0, sendMsg, -1, NULL, 0, NULL, NULL );
+		WideCharToMultiByte( CP_ACP, 0, sendMsg, -1, buffer, msgLen, NULL, NULL );
+
+		send( s, (LPSTR)buffer, msgLen + 1, 0 );
+		msgCount = 0;
+
+		return true;
+	}
+
 	
 	void PrintText( HDC hdc )
 	{
@@ -95,8 +116,13 @@ public:
 		str[msgCount] = NULL;
 	}
 
+	const TCHAR* GetMsg() const
+	{
+		return message;
+	}
+
 public:
-	static constexpr auto WM_ASYNC = WM_USER + 1;
+	static constexpr int WM_ASYNC = WM_USER + 1;
 private:
 	static constexpr int clientMax = 5;
 	static constexpr int bufferSize = 128;
@@ -107,6 +133,7 @@ private:
 	SOCKADDR_IN addr = { 0 };
 	TCHAR message[bufferSize * 2];
 	TCHAR str[bufferSize];
+	HWND hWnd;
 
 	int size;
 	int msgLen;
